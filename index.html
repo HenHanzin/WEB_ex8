@@ -1,9 +1,11 @@
 <!DOCTYPE html>
-<html lang="en" ng-app="imageBrowserApp">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <title>Image Browser</title>
-    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.2/angular.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/17.0.2/umd/react.development.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/17.0.2/umd/react-dom.development.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/6.26.0/babel.min.js"></script>
     <style>
         /* Add custom styles here */
         .thumbnail {
@@ -43,74 +45,62 @@
         }
     </style>
 </head>
-<body ng-controller="ImageController">
+<body>
 
-    <h1>Image Browser</h1>
+<div id="app"></div>
 
-    <div class="thumbnail-container">
-        <!-- Thumbnails -->
-        <img ng-repeat="image in images" ng-src="{{image.thumbnail}}" class="thumbnail" ng-click="selectImage(image.full)">
-    </div>
+<script type="text/babel">
+    class ImageBrowserApp extends React.Component {
+        constructor(props) {
+            super(props);
+            this.state = {
+                images: [],
+                selectedImage: null
+            };
+        }
 
-    <div ng-show="selectedImage" class="selected-image-container">
-        <!-- Selected Image -->
-        <h2>Selected Image</h2>
-        <img ng-src="{{selectedImage}}" alt="Selected Image">
-    </div>
+        componentDidMount() {
+            const limit = 15; // Limit the number of pictures to fetch
+            fetch('https://picsum.photos/v2/list?limit=' + limit)
+                .then(response => response.json())
+                .then(data => {
+                    const images = data.map(item => ({
+                        thumbnail: `https://picsum.photos/100/100?image=${item.id}`,
+                        full: `https://picsum.photos/${item.width}/${item.height}?image=${item.id}`
+                    }));
+                    this.setState({ images });
+                })
+                .catch(error => console.error('Error fetching images:', error));
+        }
 
-    <script>
-        angular.module('imageBrowserApp', [])
-            .controller('ImageController', ['$scope', '$http', function($scope, $http) {
-                $scope.images = [];
-                $scope.selectedImage = null;
-                var limit = 15; // Limit the number of pictures to fetch
+        selectImage = (imageUrl) => {
+            this.setState({ selectedImage: imageUrl });
+        }
 
-                // Fetch images from the API
-                $http.get('https://picsum.photos/v2/list?limit=' + limit)
-                    .then(function(response) {
-                        // Extracting image data from response
-                        $scope.images = response.data.map(function(item) {
-                            return {
-                                thumbnail: `https://picsum.photos/100/100?image=${item.id}`,
-                                full: `https://picsum.photos/${item.width}/${item.height}?image=${item.id}`
-                            };
-                        });
-                    }, function(error) {
-                        console.error('Error fetching images:', error);
-                    });
-
-                // Function to select an image
-                $scope.selectImage = function(imageUrl) {
-                    $scope.selectedImage = imageUrl;
-                };
-            }]);
-    </script>
-
-<script>
-    // custom config for the MTW app 
-    const mtwAppConfig = {
-        border: true // app border in the MTW page                    
+        render() {
+            return (
+                <div>
+                    <h1>Image Browser</h1>
+                    <div className="thumbnail-container">
+                        {/* Thumbnails */}
+                        {this.state.images.map(image => (
+                            <img key={image.thumbnail} src={image.thumbnail} className="thumbnail" onClick={() => this.selectImage(image.full)} />
+                        ))}
+                    </div>
+                    {this.state.selectedImage && (
+                        <div className="selected-image-container">
+                            {/* Selected Image */}
+                            <h2>Selected Image</h2>
+                            <img src={this.state.selectedImage} alt="Selected Image" />
+                        </div>
+                    )}
+                </div>
+            );
+        }
     }
 
-    ///////////////////////////////////////////////////////
-    // implement this functions in order to use private API        
-    const sendPrivateApiRequest = async () => {
-        // your code here:
-        // sendRequestToParent({ cat: 'getAssets' })
-    }        
-
-    const acceptPrivateApiResponse = async (data) => {
-        // process received data here:
-        // console.log(data)
-    }
-
-    // use this in order to send on document load
-    document.addEventListener('DOMContentLoaded', () => {
-        // your code here:
-        //sendRequestToParent({ method: 'getAssets' })
-    })
-
+    ReactDOM.render(<ImageBrowserApp />, document.getElementById('app'));
 </script>
-<script src="https://morethanwallet.com/appstore/index.js"></script>
+
 </body>
 </html>
